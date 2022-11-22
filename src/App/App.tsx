@@ -1,8 +1,11 @@
 import * as React from "react";
+
 import api from "../api";
+import List, { ListItem } from "../item/components/List";
 import { Item } from "../types";
 import Button from "../ui/controls/Button/Button";
-import Modal from "../ui/controls/Modal";
+import Modal, { ModalFooter } from "../ui/controls/Modal";
+import TextField from "../ui/inputs/TextField";
 
 
 import styles from "./App.module.scss";
@@ -12,6 +15,10 @@ enum Status {
   Success = 'success',
 }
 
+interface Form extends HTMLFormElement {
+  text: HTMLInputElement;
+}
+
 const App: React.FC = () => {
   const [items, setItems] = React.useState<Item[]>([])
   const [status, setStatus] = React.useState(Status.Init)
@@ -19,6 +26,18 @@ const App: React.FC = () => {
 
   function remove(id: Item['id']) {
     api.remove(id).then(() => setItems(items => items.filter(item => item.id !== id)))
+  }
+
+  function add(event: React.FormEvent<Form>) {
+    event.preventDefault();
+    const text = event.currentTarget.text.value.trim();
+    
+    if (!text) return;
+
+    api.create(text).then(item => {
+      setItems(items.concat(item));
+      toggleModal(false);
+    })
   }
 
   React.useEffect(() => {
@@ -38,24 +57,23 @@ const App: React.FC = () => {
         <h1>Supermarket List</h1>
         <h3>{items.length} item(s)</h3>
       </header>
-      <ul>
+      <List>
         {items.map((item) => (
-          <li key={item.id}>
-            <span>{item.text}</span>
-            <button onClick={() =>remove(item.id)}>Delete</button>
-          </li>
+          <ListItem key={item.id}  onRemove={() => remove(item.id)}>
+           {item.text}
+          </ListItem>
         ))}
-      </ul>
-      <Button colorScheme='primary' onClick={() =>toggleModal(true)}>Add Item</Button>
+      </List>
+      <Button colorScheme='primary' onClick={() => toggleModal(true)}>Add Item</Button>
       {isModalVisible && (
-        <Modal onClose={() =>toggleModal(false)}>
-          <form>
-            <h2>Add Item</h2>
-            <input type='text'/>
-            <nav>
-              <Button type="button" onClick={() =>toggleModal(false)}>Cancel</Button>
+        <Modal onClose={() => toggleModal(false)}>
+          <form onSubmit={add}>
+            <h2 style={{ color: "black" }}>Add Item</h2>
+            <TextField autoFocus name='text' type='text' />
+            <ModalFooter>
+              <Button type="button" onClick={() => toggleModal(false)}>Cancel</Button>
               <Button colorScheme='primary' type='submit'>Add Item</Button>
-            </nav>
+            </ModalFooter>
           </form>
         </Modal>
       )}
